@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <%= stylesheet_link_tag "application" %>
+  <%= javascript_pack_tag "application" %>
+  <title>Chat App</title>
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+</head>
+
+<body>
+<div class="body">
+  <p class="notice"><%= notice %></p>
+  <p class="alert"><%= alert %></p>
+
+  <%= yield %>
+  <footer>
+    <ul>
+      <% if user_signed_in? %>
+        <li>
+          <%= link_to('Logout', destroy_user_session_path, method: :get) %>
+        </li>
+      <% else %>
+        <li>
+          <%= link_to('Login', new_user_session_path) %>
+        </li>
+      <% end %>
+    </ul>
+  </footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,91 @@
+<h1>Messages for <%= current_user.email %></h1>
+
+<ul id="messages">
+  <% @messages.each do |message| %>
+    <li class="message-box <%= (current_user != message.sender) ? 'sender' : 'receiver' %>">
+      <div class="message">
+        <div>
+          <p><strong>From: <%= message.sender.email %></strong></p>
+          <p><strong>To: <%= message.receiver.email %></strong></p>
+        </div>
+        <div><%= message.message %></div>
+      </div>
+      <div class="message-body"><%= message.created_at.strftime("%Y-%m-%d %l:%m%P") %></div>
+    </li>
+  <% end %>
+</ul>
+
+<%= render 'form', message: @message %>
+
+<br>
+
+<%= link_to 'New Message', new_message_path %>
+
+<script>
+
+    window.ChatApp = window.ChatApp || {}
+    window.ChatApp.max_id =  "<%= @messages.last.id  %>"
+
+    const appendMessageToBody = (message) => {
+
+        const html = `
+        <li class="message-box receiver" >
+          <div class="message">
+              <div>
+                  <p><strong>From: ${message.sender.email} </strong></p>
+                  <p><strong>To: ${message.receiver.email} </strong></p>
+              </div>
+              <div>${message.message} </div>
+            </div>
+          <div class="message-body">${message.created_at}</div>
+        </li>
+        `;
+
+        let node = document.createRange().createContextualFragment(html)
+        document.querySelector("#messages").appendChild(node)
+    }
+
+    document.body.addEventListener("ajax:success", (event) => {
+        const [data, status, xhr] = event.detail;
+        appendMessageToBody(data.message)
+        window.ChatApp.max_id = data.message.id
+    });
+
+    document.body.addEventListener("ajax:error", (event) => {
+        const [data, status, xhr] = event.detail;
+        console.warn('Unhandled error, would be handled in real site')
+    });
+
+    const getNewMessages = () => {
+        const variables = JSON.stringify({ recent: {max_id: window.ChatApp.max_id}})
+        fetch('<%= recent_messages_path(format: :json) %>',
+            {
+                body: variables,
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': '<%= form_authenticity_token %>'
+                }
+            }
+            )
+            .then((response) => {
+                return response.json()
+            })
+            .then((messages) => {
+                if (messages.length < 1) {
+                    return null
+                }
+
+                const lastMessage =  messages[messages.length - 1]
+                window.ChatApp.max_id = lastMessage.id
+                messages.forEach((message) => {
+                    appendMessageToBody(message)
+                })
+            });
+    }
+
+    let newMessagePromise = new Promise((resolve, reject) => {
+        setInterval(getNewMessages, 2000)
+    })
+
+</script>
